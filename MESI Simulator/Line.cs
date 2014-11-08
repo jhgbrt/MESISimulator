@@ -15,10 +15,10 @@ namespace MESI_Simulator
             State = state;
         }
         public MESIState State { get; set; }
-        public uint Address { get; private set; }
+        public AlignedAddress Address { get; private set; }
         private readonly byte[] _data;
 
-        public void Set(uint address, byte[] data)
+        public void Set(AlignedAddress address, byte[] data)
         {
             Address = address;
             Array.Copy(data, _data, Math.Min(data.Length, _data.Length));
@@ -33,12 +33,12 @@ namespace MESI_Simulator
 
         public override string ToString()
         {
-            var sb = new StringBuilder().AppendFormat("0x{0:x8} ({1}) - ", Address, State);
+            var sb = new StringBuilder().AppendFormat("0x{0} ({1}) - ", Address, State);
             foreach (var b in _data) sb.AppendFormat("{0:x}", b);
             return sb.ToString();
         }
 
-        public void Reset(uint alignedAddress)
+        public void Reset(AlignedAddress alignedAddress)
         {
             State= MESIState.I;
             Address = alignedAddress;

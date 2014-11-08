@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using MESI_Simulator;
 using NUnit.Framework;
 
@@ -19,13 +20,19 @@ namespace UnitTests
                 bytes[i] = BitConverter.GetBytes(b)[0];
             }
             int result = 0;
-            s.Run(cpus =>
+            s.Run(async cpus =>
                   {
-                      cpus[0].Load(0, Register.A);
+                      await cpus[0].Load(new MemoryAddress(0), Register.A);
                       result = cpus[0].GetRegisterValue(Register.A);
                   });
 
-            Console.WriteLine("{0:x8} = {0}", result);
+            Console.WriteLine("{0} = {0}", result);
+        }
+
+        public void BEqualsAPlusOne()
+        {
+            int a = 1;
+            int b = a + 1;
         }
 
         [Test]
@@ -37,6 +44,7 @@ namespace UnitTests
             {
                 cpus[0].SetRegisterValue(Register.A, 1234);
                 result = cpus[0].GetRegisterValue(Register.A);
+                return Task.FromResult(0);
             });
 
             Assert.AreEqual(1234, result);
@@ -54,8 +62,8 @@ namespace UnitTests
             for (uint i = 0; i < 0xF; i++)
             {
                 var j = i + 0xABC30;
-                Assert.AreEqual(0xABC30, j.Align(), string.Format("{0:x8}.Align() returned {1}", j, j.Align()));
-                Assert.AreEqual(3, j.GetHashSlot(), string.Format("{0:x8}.GetHashSlot() returned {1}", j, j.GetHashSlot()));
+                Assert.AreEqual(0xABC30, j.Align(), string.Format("{0}.Align() returned {1}", j, j.Align()));
+                Assert.AreEqual(3, j.GetHashSlot(), string.Format("{0}.GetHashSlot() returned {1}", j, j.GetHashSlot()));
             }
         }
 

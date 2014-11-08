@@ -7,7 +7,7 @@ namespace MESI_Simulator
     public class Memory
     {
         private readonly Bus _bus;
-        private readonly IDictionary<uint, Line> _data = new Dictionary<uint, Line>();
+        private readonly IDictionary<AlignedAddress, Line> _data = new Dictionary<AlignedAddress, Line>();
 
         public Memory(Bus bus, int size, int lineSize)
         {
@@ -17,7 +17,7 @@ namespace MESI_Simulator
             for (int i = 0; i < size; i += lineSize)
             {
                 var line = new Line(lineSize, MESIState.S);
-                _data[(uint)i] = line;
+                _data[new AlignedAddress((uint)i)] = line;
             }
         }
 
@@ -26,8 +26,8 @@ namespace MESI_Simulator
             if (message.Sender == this)
                 return false;
 
-            Console.WriteLine("{0} Receives 0x{1:x8} - {2}", this, message.Address, message.MessageType);
-            var alignedAddress = message.Address.Align();
+            Console.WriteLine("{0} Receives 0x{1} - {2}", this, message.Address, message.MessageType);
+            var alignedAddress = message.Address;
             var line = _data[alignedAddress];
 
             switch (message.MessageType)
@@ -61,6 +61,7 @@ namespace MESI_Simulator
                     {
                         await Stall();
                         line.Write(message.Data, 0);
+                        Console.WriteLine("{0} applied WRITEBACK for {1}", this, message.Address);
                     }
                     break;
                 case MESIMessage.READ_RESPONSE:
@@ -72,7 +73,7 @@ namespace MESI_Simulator
             return false;
         }
 
-        private void SendReadResponse(Message message, Line line, uint alignedAddress)
+        private void SendReadResponse(Message message, Line line, AlignedAddress alignedAddress)
         {
             var bytes = line.GetData();
             message.ResponseSent = true;
@@ -81,7 +82,7 @@ namespace MESI_Simulator
 
         private static async Task Stall()
         {
-            Console.WriteLine("...");
+            Console.WriteLine("MEMORY STALL...");
             await Task.Delay(1000);
         }
 

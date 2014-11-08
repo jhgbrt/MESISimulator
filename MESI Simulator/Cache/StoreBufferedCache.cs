@@ -4,42 +4,6 @@ using System.Threading.Tasks;
 
 namespace MESI_Simulator
 {
-    class NaiveStoreBufferedCache : ICache
-    {
-        private ICache _cache;
-        private readonly int _id;
-
-        public NaiveStoreBufferedCache(ICache cache, int id)
-        {
-            _cache = cache;
-            _id = id;
-        }
-
-        public Task<byte[]> Read(uint address)
-        {
-            return _cache.Read(address);
-        }
-
-        public Task<byte[]> ReadExclusive(uint address)
-        {
-            return _cache.ReadExclusive(address);
-        }
-
-        private Task _bufferedStore;
-
-        public Task Store(byte[] result, uint address)
-        {
-            _bufferedStore = BufferedStore(result, address);
-            return Task.FromResult(true);
-        }
-
-        private async Task BufferedStore(byte[] result, uint address)
-        {
-            await _cache.Store(result, address);
-            Console.WriteLine("CPU {1} STOREBUFFER - STORE completed for address {0}", address, _id);
-        }
-    }
-
     class StoreBufferedCache : ICache
     {
         private ICache _cache;
@@ -51,7 +15,7 @@ namespace MESI_Simulator
             _id = id;
         }
 
-        public Task<byte[]> Read(uint address)
+        public Task<byte[]> Read(MemoryAddress address)
         {
             byte[] result;
             if (TryGetPendingResult(address, out result))
@@ -59,7 +23,7 @@ namespace MESI_Simulator
             return _cache.Read(address);
         }
 
-        public Task<byte[]> ReadExclusive(uint address)
+        public Task<byte[]> ReadExclusive(MemoryAddress address)
         {
             byte[] result;
             if (TryGetPendingResult(address, out result))
@@ -67,7 +31,7 @@ namespace MESI_Simulator
             return _cache.ReadExclusive(address);
         }
 
-        private bool TryGetPendingResult(uint address, out byte[] result)
+        private bool TryGetPendingResult(MemoryAddress address, out byte[] result)
         {
             var found = false;
             result = null;
@@ -76,7 +40,7 @@ namespace MESI_Simulator
             {
                 var line = new Line(16);
                 var alignedAddress = address.Align();
-                var offset = (int)(address - alignedAddress);
+                var offset = (int)alignedAddress.OffsetFor(address);
                 line.Write(pending, offset);
                 result = line.GetData();
                 found = true;
@@ -86,15 +50,15 @@ namespace MESI_Simulator
 
         private Task _bufferedStore;
 
-        public Task Store(byte[] result, uint address)
+        public Task Store(byte[] result, MemoryAddress address)
         {
             _bufferedStore = BufferedStore(result, address);
             return Task.FromResult(true);
         }
 
-        private ConcurrentDictionary<uint, byte[]> _pendingStores = new ConcurrentDictionary<uint, byte[]>();
+        private ConcurrentDictionary<MemoryAddress, byte[]> _pendingStores = new ConcurrentDictionary<MemoryAddress, byte[]>();
 
-        private async Task BufferedStore(byte[] result, uint address)
+        private async Task BufferedStore(byte[] result, MemoryAddress address)
         {
             Console.WriteLine("CPU {1} STOREBUFFER - Recording STORE for address {0}", address, _id);
             _pendingStores.AddOrUpdate(address, result, (x, y) => result);

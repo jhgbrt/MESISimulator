@@ -5,13 +5,6 @@ using System.Threading.Tasks;
 
 namespace MESI_Simulator
 {
-    public interface ICache
-    {
-        Task<byte[]> Read(uint address);
-        Task<byte[]> ReadExclusive(uint address);
-        Task Store(byte[] result, uint address);
-    }
-
     public class Cache : ICache
     {
         private readonly Bus _bus;
@@ -33,10 +26,10 @@ namespace MESI_Simulator
                 _lines[i] = new Line(lineSize);
         }
 
-        public async Task<byte[]> Read(uint address)
+        public async Task<byte[]> Read(MemoryAddress address)
         {
             var alignedAddress = address.Align();
-            var cacheLine = await GetCacheLineFor(address);
+            var cacheLine = await GetCacheLineFor(alignedAddress);
 
             Console.WriteLine("{0} Read address {1}. Aligned address = {2}, cache line state = {3}", this, address, cacheLine.Address, cacheLine.State);
 
@@ -54,9 +47,9 @@ namespace MESI_Simulator
             return cacheLine.GetData();
         }
 
-        public async Task<byte[]> ReadExclusive(uint address)
+        public async Task<byte[]> ReadExclusive(MemoryAddress address)
         {
-            var cacheLine = await GetCacheLineFor(address);
+            var cacheLine = await GetCacheLineFor(address.Align());
             Console.WriteLine("{0} Read address {1}. Aligned address = {2}, cache line state = {3}", this, address, cacheLine.Address, cacheLine.State);
 
             switch (cacheLine.State)
@@ -78,13 +71,13 @@ namespace MESI_Simulator
             return cacheLine.GetData();
         }
 
-        public async Task Store(byte[] result, uint address)
+        public async Task Store(byte[] result, MemoryAddress address)
         {
-            var cacheLine = await GetCacheLineFor(address);
+            var cacheLine = await GetCacheLineFor(address.Align());
 
             await ReadInvalidate(cacheLine);
 
-            int offset = (int) (address - cacheLine.Address);
+            int offset = (int) (address.Value - cacheLine.Address.Value);
             cacheLine.Write(result, offset);
 
             await Writeback(cacheLine);
@@ -93,9 +86,9 @@ namespace MESI_Simulator
         public async Task<bool> OnMessage(object sender, Message message)
         {
             if (message.Sender == this) return false;
-            Console.WriteLine("{0} Receives 0x{1:x8} - {2}", this, message.Address, message.MessageType);
+            Console.WriteLine("{0} Receives 0x{1} - {2}", this, message.Address, message.MessageType);
             var cacheLine = await GetCacheLineFor(message.Address);
-            Console.WriteLine("{0}          0x{1:x8} - {2} ({3})", this, message.Address, message.MessageType, cacheLine.State);
+            Console.WriteLine("{0}          0x{1} - {2} ({3})", this, message.Address, message.MessageType, cacheLine.State);
             
             switch (message.MessageType)
             {
@@ -154,9 +147,8 @@ namespace MESI_Simulator
             return false;
         }
 
-        private async Task<Line> GetCacheLineFor(uint address)
+        private async Task<Line> GetCacheLineFor(AlignedAddress alignedAddress)
         {
-            var alignedAddress = address.Align();
             var hashSlot = alignedAddress.GetHashSlot();
             var cacheLine = _lines[hashSlot];
             
@@ -211,19 +203,6 @@ namespace MESI_Simulator
             var writeback = Message.Writeback(this, line.Address, line.GetData());
             await _bus.SendAsync(writeback);
             line.State = MESIState.E;
-        }
-    }
-
-    public static class Extensions
-    {
-        public static uint GetHashSlot(this uint value)
-        {
-            return (value & 0xF0) >> 4;
-        }
-
-        public static uint Align(this uint value)
-        {
-            return value & 0xFFFFFFF0;
         }
     }
 }

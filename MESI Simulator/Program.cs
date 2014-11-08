@@ -9,8 +9,8 @@ namespace MESI_Simulator
         private static void Main(string[] args)
         {
 
-            var addressOfA = 0xAAu;
-            var addressOfB = 0xBBu;
+            var addressOfA = new MemoryAddress(0xAAu);
+            var addressOfB = new MemoryAddress(0xBBu);
             
             Func<Processor[], Task> loadAddressOfAInCacheOfCpu1 = async cpus =>
             {
@@ -24,6 +24,7 @@ namespace MESI_Simulator
 
             Func<Processor[], Task> b_equals_a_plus_1 = async cpus =>
                                           {
+                                              // a = 1
                                               await cpus[0].LoadExclusive(addressOfA, Register.A);
                                               cpus[0].SetRegisterValue(Register.A, 1);
                                               await cpus[0].Store(Register.A, addressOfA);
@@ -42,7 +43,7 @@ namespace MESI_Simulator
                                                   Console.WriteLine("SUCCESS!");
                                           };
 
-            Action<Processor[]> foo = async cpus =>
+            Func<Processor[], Task> foo = async cpus =>
                                             {
                                                 await cpus[0].LoadExclusive(addressOfA, Register.A);
                                                 cpus[0].SetRegisterValue(Register.A, 1);
@@ -52,7 +53,7 @@ namespace MESI_Simulator
                                                 await cpus[0].Store(Register.B, addressOfB);
                                             };
 
-            Action<Processor[]> bar = async cpus =>
+            Func<Processor[], Task> bar = async cpus =>
                                             {
                                                 int b = 0;
                                                 while (b == 0)

@@ -10,7 +10,7 @@ namespace MESI_Simulator
     {
         public async Task SendAsync(Message message)
         {
-            Console.WriteLine("{0} Sends 0x{2:x8} - {1}", message.Sender, message.MessageType, message.Address);
+            Console.WriteLine("{0} Sends 0x{2} - {1}", message.Sender, message.MessageType, message.Address);
 
             _responses[message] = new ConcurrentBag<Message>();
 
@@ -33,7 +33,7 @@ namespace MESI_Simulator
 
         public void Respond(Message message, Message response)
         {
-            Console.WriteLine("{0} Responds 0x{2:x8} - {1}", response.Sender, response.MessageType, response.Address);
+            Console.WriteLine("{0} Responds 0x{2} - {1}", response.Sender, response.MessageType, response.Address);
             _responses[message].Add(response);
         }
 

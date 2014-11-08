@@ -20,22 +20,22 @@ namespace MESI_Simulator
             //_cache = new StoreBufferedCache(new Cache(bus, id, nofCacheLines, lineSize), id);
         }
 
-        public async Task Load(uint address, Register register)
+        public async Task Load(MemoryAddress address, Register register)
         {
-            Console.WriteLine("CPU {0} Loads value at 0x{1:x8} into register {2}.", _id, address, register);
+            Console.WriteLine("CPU {0} Loads value at 0x{1} into register {2}.", _id, address, register);
             var data = await _cache.Read(address);
             var int32 = Convert(data, address, BitConverter.ToInt32);
             _registers[(uint)register] = int32;
-            Console.WriteLine("CPU {0} Loaded value at 0x{1:x8} into register {2}. Result = {3}", _id, address, register, int32);
+            Console.WriteLine("CPU {0} Loaded value at 0x{1} into register {2}. Result = {3}", _id, address, register, int32);
         }
 
-        public async Task LoadExclusive(uint address, Register register)
+        public async Task LoadExclusive(MemoryAddress address, Register register)
         {
-            Console.WriteLine("CPU {0} Loads value at 0x{1:x8} for exclusive access into register {2}.", _id, address, register);
+            Console.WriteLine("CPU {0} Loads value at 0x{1} for exclusive access into register {2}.", _id, address, register);
             var data = await _cache.ReadExclusive(address);
             var int32 = Convert(data, address, BitConverter.ToInt32); 
             _registers[(uint)register] = int32;
-            Console.WriteLine("CPU {0} Loaded value at 0x{1:x8} for exclusive access into register {2}. Result = {3}", _id, address, register, int32);
+            Console.WriteLine("CPU {0} Loaded value at 0x{1} for exclusive access into register {2}. Result = {3}", _id, address, register, int32);
         }
 
         public void Add(Register left, Register right, Register result)
@@ -44,12 +44,12 @@ namespace MESI_Simulator
             Console.WriteLine("CPU summed value in all registers. Result = {0}, stored in register {1}.", _registers[(int) result], result);
         }
 
-        public async Task Store(Register register, uint address)
+        public async Task Store(Register register, MemoryAddress address)
         {
-            Console.WriteLine("CPU {0} Store value {1} (from register {2}) at memory address 0x{3:x8}.", _id, _registers[(int) register], register, address);
+            Console.WriteLine("CPU {0} Store value {1} (from register {2}) at memory address 0x{3}.", _id, _registers[(int) register], register, address);
             var bytes = BitConverter.GetBytes(_registers[(int)register]);
             await _cache.Store(bytes, address);
-            Console.WriteLine("CPU {0} Stored value {1} (from register {2}) at memory address 0x{3:x8}.", _id, _registers[(int)register], register, address);
+            Console.WriteLine("CPU {0} Stored value {1} (from register {2}) at memory address 0x{3}.", _id, _registers[(int)register], register, address);
         }
 
         public int GetRegisterValue(Register register)
@@ -61,10 +61,10 @@ namespace MESI_Simulator
             _registers[(int) register] = value;
         }
 
-        private T Convert<T>(byte[] line, uint address, Func<byte[], int, T> convertor)
+        private T Convert<T>(byte[] line, MemoryAddress address, Func<byte[], int, T> convertor)
         {
             var alignedAddress = address.Align();
-            var offset = (int) (address - alignedAddress);
+            var offset = (int) (alignedAddress.OffsetFor(address));
             return convertor(line, offset);
         }
     }
